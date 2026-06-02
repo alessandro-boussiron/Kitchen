@@ -78,7 +78,11 @@ stocks_t *find_ingredient(config_t *cfg, const char *name)
 
 int add_ingredient(config_t *cfg, const char *name, size_t qty)
 {
-    stocks_t *existing = find_ingredient(cfg, name);
+    stocks_t *existing;
+
+    if (!cfg || !name)
+        return FAIL;
+    existing = find_ingredient(cfg, name);
     stocks_t *entry;
     stocks_t **tmp;
 

@@ -14,7 +14,7 @@ int cmd_exit(config_t *cfg, char **args)
 {
     (void)cfg;
     (void)args;
-    return -1;
+    return SHELL_EXIT;
 }
 
 int cmd_help(config_t *cfg, char **args)
@@ -80,13 +80,18 @@ int cmd_make(config_t *cfg, char **args)
 
 int cmd_add(config_t *cfg, char **args)
 {
+    char *endptr;
     size_t qty;
 
     if (!args[1] || !args[2]) {
         printf("Usage: add \"<ingredient>\" <qty>\n");
         return FAIL;
     }
-    qty = (size_t)strtoul(args[2], NULL, 10);
+    qty = (size_t)strtoul(args[2], &endptr, 10);
+    if (endptr == args[2] || *endptr != '\0') {
+        printf("Error: invalid quantity '%s'.\n", args[2]);
+        return FAIL;
+    }
     if (add_ingredient(cfg, args[1], qty) != SUCCESS) {
         printf("Error: could not add ingredient.\n");
         return FAIL;

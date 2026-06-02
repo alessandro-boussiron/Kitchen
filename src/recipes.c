@@ -9,13 +9,13 @@
 #include <stdio.h>
 #include <string.h>
 
-static char *pepperoni_ingr[] = {"dough", "tomato", "cheese", "pepperoni"};
+static const char *pepperoni_ingr[] = {"dough", "tomato", "cheese", "pepperoni"};
 static size_t pepperoni_qty[] = {1, 2, 2, 3};
 
-static char *cheese_ingr[] = {"dough", "tomato", "cheese"};
+static const char *cheese_ingr[] = {"dough", "tomato", "cheese"};
 static size_t cheese_qty[] = {1, 2, 3};
 
-static char *ham_ingr[] = {"dough", "tomato", "cheese", "ham"};
+static const char *ham_ingr[] = {"dough", "tomato", "cheese", "ham"};
 static size_t ham_qty[] = {1, 2, 2, 2};
 
 static const recipe_ingredients_t pepperoni_def = {pepperoni_ingr, pepperoni_qty, 4};
@@ -39,8 +39,8 @@ static int kitchen_has_equipment(const kitchen_t *k, const char *item)
 static int do_apply(config_t *cfg, const recipe_ingredients_t *def,
     const char **required_equip)
 {
+    stocks_t *slots[8];
     size_t i;
-    stocks_t *slot;
 
     if (cfg->kitchen->workers_count == 0) {
         printf("Error: no workers available.\n");
@@ -53,17 +53,15 @@ static int do_apply(config_t *cfg, const recipe_ingredients_t *def,
         }
     }
     for (i = 0; i < def->count; i++) {
-        slot = find_ingredient(cfg, def->ingredients[i]);
-        if (!slot || slot->quantity < def->quantity[i]) {
+        slots[i] = find_ingredient(cfg, def->ingredients[i]);
+        if (!slots[i] || slots[i]->quantity < def->quantity[i]) {
             printf("Error: not enough '%s' (need %zu).\n",
                 def->ingredients[i], def->quantity[i]);
             return FAIL;
         }
     }
-    for (i = 0; i < def->count; i++) {
-        slot = find_ingredient(cfg, def->ingredients[i]);
-        slot->quantity -= def->quantity[i];
-    }
+    for (i = 0; i < def->count; i++)
+        slots[i]->quantity -= def->quantity[i];
     return SUCCESS;
 }
 

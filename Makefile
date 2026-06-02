@@ -20,6 +20,10 @@ OBJ     = $(SRC:.c=.o)
 
 NAME    = ./kitchen
 
+TEST_OBJ  = src/config_parser.o src/config.o src/recipes.o src/commands.o
+TEST_DIR  = tests
+TESTS     = $(TEST_DIR)/test_kitchen \
+
 all:    $(NAME)
 
 $(NAME): $(OBJ)
@@ -28,8 +32,14 @@ $(NAME): $(OBJ)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+tests: $(TEST_OBJ) $(TESTS)
+	@for t in $(TESTS); do ./$$t --verbose; done
+
+$(TEST_DIR)/test_kitchen: $(TEST_DIR)/test_kitchen.c $(TEST_OBJ)
+	$(CC) $(CFLAGS) $^ -lcriterion -o $@
+
 clean:
-	$(RM) $(OBJ)
+	$(RM) $(OBJ) $(TESTS)
 
 fclean: clean
 	$(RM) $(NAME)

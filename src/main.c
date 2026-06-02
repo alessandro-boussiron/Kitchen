@@ -118,7 +118,7 @@ static void run_shell(config_t *cfg)
             break;
         ret = dispatch(cfg, tokens);
         free_tokens(tokens);
-        if (ret == -1)
+        if (ret == SHELL_EXIT)
             break;
     }
 }

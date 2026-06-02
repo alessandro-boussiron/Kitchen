@@ -4,7 +4,8 @@
         "tomato": 46,
         "cheese": 35,
         "ham": 67,
-        "pepperoni": 27
+        "pepperoni": 27,
+        "feur": 5
     },
     "kitchen" : {
         "workers" : 4,

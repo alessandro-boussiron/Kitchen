@@ -10,8 +10,9 @@
 
     #include <stddef.h>
 
-    #define SUCCESS (int)(0)
-    #define FAIL    (int)(1)
+    #define SUCCESS     (int)(0)
+    #define FAIL        (int)(1)
+    #define SHELL_EXIT  (int)(-1)
 
     #define RECIPE_QUANTITY (int)(3)
 
@@ -48,7 +49,7 @@ typedef struct recipe {
 } recipe_t;
 
 typedef struct recipe_ingredients {
-    char **ingredients;
+    const char **ingredients;
     size_t *quantity;
     size_t count;
 } recipe_ingredients_t;

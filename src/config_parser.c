@@ -14,20 +14,26 @@
 static char *read_file(const char *path)
 {
     FILE *f = fopen(path, "r");
-    long size;
+    long raw_size;
+    size_t size;
     char *buf;
 
     if (!f)
         return NULL;
     fseek(f, 0, SEEK_END);
-    size = ftell(f);
+    raw_size = ftell(f);
+    if (raw_size < 0) {
+        fclose(f);
+        return NULL;
+    }
+    size = (size_t)raw_size;
     rewind(f);
     buf = malloc(size + 1);
     if (!buf) {
         fclose(f);
         return NULL;
     }
-    if ((long)fread(buf, 1, size, f) != size) {
+    if (fread(buf, 1, size, f) != size) {
         free(buf);
         fclose(f);
         return NULL;
