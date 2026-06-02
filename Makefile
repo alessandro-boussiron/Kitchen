@@ -5,22 +5,23 @@
 ## Makefile
 ##
 
-CC      = clang
-INCLUDE = -I./include/
-CFLAGS  = -Wall -Wextra $(INCLUDE)
+CC      	= 	epiclang
+INCLUDE 	= 	-I./include/
+CFLAGS  	= 	-Wall -Wextra $(INCLUDE)
 
-SRCF    = src/
-SRC     = $(SRCF)config_parser.c    \
-          $(SRCF)config.c           \
-          $(SRCF)recipes.c          \
-          $(SRCF)commands.c         \
-          $(SRCF)main.c             \
+SRCF	    = 	src/
+SRC 	    =	$(SRCF)config_parser.c    \
+				$(SRCF)config.c           \
+				$(SRCF)recipes.c          \
+				$(SRCF)commands.c         \
+				$(SRCF)cmd_stock.c        \
+				$(SRCF)main.c             \
 
 OBJ     = $(SRC:.c=.o)
 
 NAME    = ./kitchen
 
-TEST_OBJ  = src/config_parser.o src/config.o src/recipes.o src/commands.o
+TEST_OBJ  = src/config_parser.o src/config.o src/recipes.o src/commands.o src/cmd_stock.o
 TEST_DIR  = tests
 TESTS     = $(TEST_DIR)/test_kitchen \
 

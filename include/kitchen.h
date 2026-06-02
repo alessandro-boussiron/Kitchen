@@ -11,11 +11,14 @@
     #include <stddef.h>
     #include <stdbool.h>
 
-    #define SUCCESS     (int)(0)
-    #define FAIL        (int)(1)
-    #define SHELL_EXIT  (int)(-1)
+    #define SUCCESS    (int)(0)
+    #define FAIL       (int)(1)
+    #define SHELL_EXIT (int)(-1)
 
     #define RECIPE_QUANTITY (int)(4)
+
+    #define CONFIG_PATH  "config.json"
+    #define LINE_MAX_LEN 1024
 
 typedef struct stocks {
     char *ingredient;
@@ -34,7 +37,7 @@ typedef struct config {
     kitchen_t *kitchen;
 } config_t;
 
-typedef int (*apply_recipe)(config_t *);
+typedef int (*apply_recipe_t)(config_t *);
 
 typedef enum {
     PEPPERONI_PIZZA,
@@ -46,7 +49,7 @@ typedef enum {
 
 typedef struct recipe {
     char *name;
-    apply_recipe apply;
+    apply_recipe_t apply;
     recipe_type_t recipe;
 } recipe_t;
 
@@ -66,13 +69,13 @@ typedef struct command {
 } command_t;
 
 // Config I/O
-config_t   *load_config(const char *path);
-void        save_config(const char *path, const config_t *cfg);
-void        free_config(config_t *cfg);
+config_t *load_config(const char *path);
+void save_config(const char *path, const config_t *cfg);
+void free_config(config_t *cfg);
 
 // Stock helpers
-stocks_t   *find_ingredient(config_t *cfg, const char *name);
-int         add_ingredient(config_t *cfg, const char *name, size_t qty);
+stocks_t *find_ingredient(config_t *cfg, const char *name);
+int add_ingredient(config_t *cfg, const char *name, size_t qty);
 
 // Recipes
 extern const recipe_t g_recipes[RECIPE_QUANTITY];

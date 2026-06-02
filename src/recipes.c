@@ -46,10 +46,27 @@ static int kitchen_has_equipment(const kitchen_t *k, const char *item)
     return 0;
 }
 
+static int check_and_deduct(config_t *cfg, const recipe_ingredients_t *def)
+{
+    stocks_t *slots[8];
+    size_t i;
+
+    for (i = 0; i < def->count; i++) {
+        slots[i] = find_ingredient(cfg, def->ingredients[i]);
+        if (!slots[i] || slots[i]->quantity < def->quantity[i]) {
+            printf("Error: not enough '%s' (need %zu).\n",
+                def->ingredients[i], def->quantity[i]);
+            return FAIL;
+        }
+    }
+    for (i = 0; i < def->count; i++)
+        slots[i]->quantity -= def->quantity[i];
+    return SUCCESS;
+}
+
 static int do_apply(config_t *cfg, recipe_type_t type)
 {
     const recipe_ingredients_t *def = &g_recipe_ingredients[type];
-    stocks_t *slots[8];
     size_t i;
 
     if (cfg->kitchen->workers_count == 0) {
@@ -62,17 +79,7 @@ static int do_apply(config_t *cfg, recipe_type_t type)
             return FAIL;
         }
     }
-    for (i = 0; i < def->count; i++) {
-        slots[i] = find_ingredient(cfg, def->ingredients[i]);
-        if (!slots[i] || slots[i]->quantity < def->quantity[i]) {
-            printf("Error: not enough '%s' (need %zu).\n",
-                def->ingredients[i], def->quantity[i]);
-            return FAIL;
-        }
-    }
-    for (i = 0; i < def->count; i++)
-        slots[i]->quantity -= def->quantity[i];
-    return SUCCESS;
+    return check_and_deduct(cfg, def);
 }
 
 static int apply_pepperoni_pizza(config_t *cfg)
@@ -97,9 +104,9 @@ static int apply_dough(config_t *cfg)
 
 const recipe_t g_recipes[RECIPE_QUANTITY] = {
     {"pepperoni_pizza", apply_pepperoni_pizza, PEPPERONI_PIZZA},
-    {"cheese_pizza",    apply_cheese_pizza,    CHEESE_PIZZA},
-    {"ham_pizza",       apply_ham_pizza,       HAM_PIZZA},
-    {"dough",           apply_dough,           DOUGH},
+    {"cheese_pizza", apply_cheese_pizza, CHEESE_PIZZA},
+    {"ham_pizza", apply_ham_pizza, HAM_PIZZA},
+    {"dough", apply_dough, DOUGH},
 };
 
 const recipe_t *find_recipe(const char *name)

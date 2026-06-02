@@ -11,17 +11,14 @@
 #include <string.h>
 #include <ctype.h>
 
-#define CONFIG_PATH "config.json"
-#define LINE_MAX_LEN 1024
-
 static const command_t commands[] = {
-    {"exit",        cmd_exit},
-    {"help",        cmd_help},
-    {"recipes",     cmd_recipes},
+    {"exit", cmd_exit},
+    {"help", cmd_help},
+    {"recipes", cmd_recipes},
     {"ingredients", cmd_ingredients},
-    {"make",        cmd_make},
-    {"add",         cmd_add},
-    {NULL,          NULL},
+    {"make", cmd_make},
+    {"add", cmd_add},
+    {NULL, NULL},
 };
 
 static void free_tokens(char **tokens)
@@ -35,14 +32,53 @@ static void free_tokens(char **tokens)
     free(tokens);
 }
 
+static char *extract_token(char **p)
+{
+    char *start;
+    size_t len;
+    char *tok;
+
+    if (**p == '"') {
+        (*p)++;
+        start = *p;
+        while (**p && **p != '"')
+            (*p)++;
+        len = *p - start;
+        if (**p == '"')
+            (*p)++;
+    } else {
+        start = *p;
+        while (**p && !isspace((unsigned char)**p))
+            (*p)++;
+        len = *p - start;
+    }
+    tok = malloc(len + 1);
+    if (!tok)
+        return NULL;
+    memcpy(tok, start, len);
+    tok[len] = '\0';
+    return tok;
+}
+
+static char **append_token(char **tokens, size_t count, char *tok)
+{
+    char **tmp;
+
+    tmp = realloc(tokens, (count + 2) * sizeof(char *));
+    if (!tmp)
+        return NULL;
+    tmp[count] = tok;
+    tmp[count + 1] = NULL;
+    return tmp;
+}
+
 static char **tokenize(char *line)
 {
     char **tokens = NULL;
+    char **tmp;
     size_t count = 0;
     char *p = line;
-    char *start;
     size_t len;
-    char **tmp;
     char *tok;
 
     len = strlen(line);
@@ -53,36 +89,19 @@ static char **tokenize(char *line)
             p++;
         if (!*p)
             break;
-        if (*p == '"') {
-            p++;
-            start = p;
-            while (*p && *p != '"')
-                p++;
-            len = p - start;
-            if (*p == '"')
-                p++;
-        } else {
-            start = p;
-            while (*p && !isspace((unsigned char)*p))
-                p++;
-            len = p - start;
-        }
-        tok = malloc(len + 1);
+        tok = extract_token(&p);
         if (!tok) {
             free_tokens(tokens);
             return NULL;
         }
-        memcpy(tok, start, len);
-        tok[len] = '\0';
-        tmp = realloc(tokens, (count + 2) * sizeof(char *));
+        tmp = append_token(tokens, count, tok);
         if (!tmp) {
             free(tok);
             free_tokens(tokens);
             return NULL;
         }
         tokens = tmp;
-        tokens[count++] = tok;
-        tokens[count] = NULL;
+        count++;
     }
     if (!tokens)
         tokens = calloc(1, sizeof(char *));

@@ -11,34 +11,37 @@
 #include <string.h>
 #include <ctype.h>
 
+static char *read_buf(FILE *f, size_t size)
+{
+    char *buf;
+
+    buf = malloc(size + 1);
+    if (!buf)
+        return NULL;
+    if (fread(buf, 1, size, f) != size) {
+        free(buf);
+        return NULL;
+    }
+    buf[size] = '\0';
+    return buf;
+}
+
 static char *read_file(const char *path)
 {
     FILE *f = fopen(path, "r");
     long raw_size;
-    size_t size;
     char *buf;
 
     if (!f)
         return NULL;
     fseek(f, 0, SEEK_END);
     raw_size = ftell(f);
+    rewind(f);
     if (raw_size < 0) {
         fclose(f);
         return NULL;
     }
-    size = (size_t)raw_size;
-    rewind(f);
-    buf = malloc(size + 1);
-    if (!buf) {
-        fclose(f);
-        return NULL;
-    }
-    if (fread(buf, 1, size, f) != size) {
-        free(buf);
-        fclose(f);
-        return NULL;
-    }
-    buf[size] = '\0';
+    buf = read_buf(f, (size_t)raw_size);
     fclose(f);
     return buf;
 }
@@ -94,11 +97,28 @@ static int expect_char(const char *s, size_t *i, char c)
     return 1;
 }
 
-static int parse_equipment_array(const char *json, size_t *i, kitchen_t *k)
+static int push_equip_item(const char *json, size_t *i, kitchen_t *k)
 {
     char *item;
     char **tmp;
 
+    item = parse_string(json, i);
+    if (!item)
+        return 0;
+    tmp = realloc(k->equipment, (k->equipment_count + 2) * sizeof(char *));
+    if (!tmp) {
+        free(item);
+        return 0;
+    }
+    k->equipment = tmp;
+    k->equipment[k->equipment_count] = item;
+    k->equipment_count++;
+    k->equipment[k->equipment_count] = NULL;
+    return 1;
+}
+
+static int parse_equipment_array(const char *json, size_t *i, kitchen_t *k)
+{
     if (!expect_char(json, i, '['))
         return 0;
     while (1) {
@@ -109,17 +129,8 @@ static int parse_equipment_array(const char *json, size_t *i, kitchen_t *k)
             (*i)++;
             continue;
         }
-        item = parse_string(json, i);
-        if (!item)
+        if (!push_equip_item(json, i, k))
             return 0;
-        tmp = realloc(k->equipment, (k->equipment_count + 2) * sizeof(char *));
-        if (!tmp) {
-            free(item);
-            return 0;
-        }
-        k->equipment = tmp;
-        k->equipment[k->equipment_count++] = item;
-        k->equipment[k->equipment_count] = NULL;
         skip_ws(json, i);
         if (json[*i] == ',')
             (*i)++;
@@ -128,11 +139,30 @@ static int parse_equipment_array(const char *json, size_t *i, kitchen_t *k)
     return 1;
 }
 
-static int parse_stock_section(const char *json, size_t *i, config_t *cfg)
+static int parse_stock_entry(const char *json, size_t *i, config_t *cfg)
 {
     char *key;
     long qty;
 
+    key = parse_string(json, i);
+    if (!key)
+        return 0;
+    if (!expect_char(json, i, ':')) {
+        free(key);
+        return 0;
+    }
+    skip_ws(json, i);
+    qty = parse_number(json, i);
+    if (add_ingredient(cfg, key, (size_t)qty) != SUCCESS) {
+        free(key);
+        return 0;
+    }
+    free(key);
+    return 1;
+}
+
+static int parse_stock_section(const char *json, size_t *i, config_t *cfg)
+{
     if (!expect_char(json, i, '{'))
         return 0;
     while (1) {
@@ -143,32 +173,31 @@ static int parse_stock_section(const char *json, size_t *i, config_t *cfg)
             (*i)++;
             continue;
         }
-        key = parse_string(json, i);
-        if (!key)
+        if (!parse_stock_entry(json, i, cfg))
             return 0;
-        if (!expect_char(json, i, ':')) {
-            free(key);
-            return 0;
-        }
-        skip_ws(json, i);
-        qty = parse_number(json, i);
-        if (add_ingredient(cfg, key, (size_t)qty) != SUCCESS) {
-            free(key);
-            return 0;
-        }
-        free(key);
         skip_ws(json, i);
         if (json[*i] == ',')
             (*i)++;
     }
     (*i)++;
+    return 1;
+}
+
+static int apply_kitchen_key(const char *json, size_t *i,
+    kitchen_t *k, const char *key)
+{
+    if (strcmp(key, "workers") == 0) {
+        k->workers_count = (size_t)parse_number(json, i);
+        return 1;
+    }
+    if (strcmp(key, "equipement") == 0)
+        return parse_equipment_array(json, i, k);
     return 1;
 }
 
 static int parse_kitchen_section(const char *json, size_t *i, config_t *cfg)
 {
     char *key;
-    kitchen_t *k = cfg->kitchen;
 
     if (!expect_char(json, i, '{'))
         return 0;
@@ -183,18 +212,9 @@ static int parse_kitchen_section(const char *json, size_t *i, config_t *cfg)
         key = parse_string(json, i);
         if (!key)
             return 0;
-        if (!expect_char(json, i, ':')) {
+        if (!expect_char(json, i, ':') || !apply_kitchen_key(json, i, cfg->kitchen, key)) {
             free(key);
             return 0;
-        }
-        skip_ws(json, i);
-        if (strcmp(key, "workers") == 0) {
-            k->workers_count = (size_t)parse_number(json, i);
-        } else if (strcmp(key, "equipement") == 0) {
-            if (!parse_equipment_array(json, i, k)) {
-                free(key);
-                return 0;
-            }
         }
         free(key);
         skip_ws(json, i);
@@ -202,6 +222,16 @@ static int parse_kitchen_section(const char *json, size_t *i, config_t *cfg)
             (*i)++;
     }
     (*i)++;
+    return 1;
+}
+
+static int apply_config_key(const char *json, size_t *i,
+    config_t *cfg, const char *key)
+{
+    if (strcmp(key, "stock") == 0)
+        return parse_stock_section(json, i, cfg);
+    if (strcmp(key, "kitchen") == 0)
+        return parse_kitchen_section(json, i, cfg);
     return 1;
 }
 
@@ -223,21 +253,9 @@ static int parse_config_object(const char *json, config_t *cfg)
         key = parse_string(json, &i);
         if (!key)
             return 0;
-        if (!expect_char(json, &i, ':')) {
+        if (!expect_char(json, &i, ':') || !apply_config_key(json, &i, cfg, key)) {
             free(key);
             return 0;
-        }
-        skip_ws(json, &i);
-        if (strcmp(key, "stock") == 0) {
-            if (!parse_stock_section(json, &i, cfg)) {
-                free(key);
-                return 0;
-            }
-        } else if (strcmp(key, "kitchen") == 0) {
-            if (!parse_kitchen_section(json, &i, cfg)) {
-                free(key);
-                return 0;
-            }
         }
         free(key);
         skip_ws(json, &i);
@@ -245,6 +263,21 @@ static int parse_config_object(const char *json, config_t *cfg)
             i++;
     }
     return 1;
+}
+
+static config_t *alloc_config(void)
+{
+    config_t *cfg;
+
+    cfg = calloc(1, sizeof(config_t));
+    if (!cfg)
+        return NULL;
+    cfg->kitchen = calloc(1, sizeof(kitchen_t));
+    if (!cfg->kitchen) {
+        free(cfg);
+        return NULL;
+    }
+    return cfg;
 }
 
 config_t *load_config(const char *path)
@@ -256,15 +289,9 @@ config_t *load_config(const char *path)
         fprintf(stderr, "Error: cannot open config file '%s'\n", path);
         return NULL;
     }
-    cfg = calloc(1, sizeof(config_t));
+    cfg = alloc_config();
     if (!cfg) {
         free(json);
-        return NULL;
-    }
-    cfg->kitchen = calloc(1, sizeof(kitchen_t));
-    if (!cfg->kitchen) {
-        free(json);
-        free(cfg);
         return NULL;
     }
     if (!parse_config_object(json, cfg)) {
