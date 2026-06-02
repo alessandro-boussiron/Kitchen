@@ -9,22 +9,32 @@
 #include <stdio.h>
 #include <string.h>
 
-static const char *pepperoni_ingr[] = {"dough", "tomato", "cheese", "pepperoni"};
-static size_t pepperoni_qty[] = {1, 2, 2, 3};
-
-static const char *cheese_ingr[] = {"dough", "tomato", "cheese"};
-static size_t cheese_qty[] = {1, 2, 3};
-
-static const char *ham_ingr[] = {"dough", "tomato", "cheese", "ham"};
-static size_t ham_qty[] = {1, 2, 2, 2};
-
-static const recipe_ingredients_t pepperoni_def = {pepperoni_ingr, pepperoni_qty, 4};
-static const recipe_ingredients_t cheese_def    = {cheese_ingr, cheese_qty, 3};
-static const recipe_ingredients_t ham_def       = {ham_ingr, ham_qty, 4};
-
-static const char *pepperoni_equip[] = {"furnace", "knife", NULL};
-static const char *cheese_equip[]    = {"furnace", NULL};
-static const char *ham_equip[]       = {"furnace", "knife", NULL};
+const recipe_ingredients_t g_recipe_ingredients[RECIPE_QUANTITY] = {
+    [PEPPERONI_PIZZA] = {
+        (const char *[]){"dough", "tomato", "cheese", "pepperoni"},
+        (size_t[]){1, 2, 2, 3},
+        4, false,
+        (const char *[]){"furnace", "knife", NULL}
+    },
+    [CHEESE_PIZZA] = {
+        (const char *[]){"dough", "tomato", "cheese"},
+        (size_t[]){1, 2, 3},
+        3, false,
+        (const char *[]){"furnace", NULL}
+    },
+    [HAM_PIZZA] = {
+        (const char *[]){"dough", "tomato", "cheese", "ham"},
+        (size_t[]){1, 2, 2, 2},
+        4, false,
+        (const char *[]){"furnace", "knife", NULL}
+    },
+    [DOUGH] = {
+        (const char *[]){"flour", "water"},
+        (size_t[]){2, 1},
+        2, true,
+        (const char *[]){NULL}
+    },
+};
 
 static int kitchen_has_equipment(const kitchen_t *k, const char *item)
 {
@@ -36,9 +46,9 @@ static int kitchen_has_equipment(const kitchen_t *k, const char *item)
     return 0;
 }
 
-static int do_apply(config_t *cfg, const recipe_ingredients_t *def,
-    const char **required_equip)
+static int do_apply(config_t *cfg, recipe_type_t type)
 {
+    const recipe_ingredients_t *def = &g_recipe_ingredients[type];
     stocks_t *slots[8];
     size_t i;
 
@@ -46,9 +56,9 @@ static int do_apply(config_t *cfg, const recipe_ingredients_t *def,
         printf("Error: no workers available.\n");
         return FAIL;
     }
-    for (i = 0; required_equip[i]; i++) {
-        if (!kitchen_has_equipment(cfg->kitchen, required_equip[i])) {
-            printf("Error: missing equipment '%s'.\n", required_equip[i]);
+    for (i = 0; def->equipment[i]; i++) {
+        if (!kitchen_has_equipment(cfg->kitchen, def->equipment[i])) {
+            printf("Error: missing equipment '%s'.\n", def->equipment[i]);
             return FAIL;
         }
     }
@@ -67,23 +77,29 @@ static int do_apply(config_t *cfg, const recipe_ingredients_t *def,
 
 static int apply_pepperoni_pizza(config_t *cfg)
 {
-    return do_apply(cfg, &pepperoni_def, pepperoni_equip);
+    return do_apply(cfg, PEPPERONI_PIZZA);
 }
 
 static int apply_cheese_pizza(config_t *cfg)
 {
-    return do_apply(cfg, &cheese_def, cheese_equip);
+    return do_apply(cfg, CHEESE_PIZZA);
 }
 
 static int apply_ham_pizza(config_t *cfg)
 {
-    return do_apply(cfg, &ham_def, ham_equip);
+    return do_apply(cfg, HAM_PIZZA);
+}
+
+static int apply_dough(config_t *cfg)
+{
+    return do_apply(cfg, DOUGH);
 }
 
 const recipe_t g_recipes[RECIPE_QUANTITY] = {
     {"pepperoni_pizza", apply_pepperoni_pizza, PEPPERONI_PIZZA},
     {"cheese_pizza",    apply_cheese_pizza,    CHEESE_PIZZA},
-    {"ham_pizza",       apply_ham_pizza,        HAM_PIZZA},
+    {"ham_pizza",       apply_ham_pizza,       HAM_PIZZA},
+    {"dough",           apply_dough,           DOUGH},
 };
 
 const recipe_t *find_recipe(const char *name)

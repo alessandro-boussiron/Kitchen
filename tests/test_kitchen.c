@@ -297,6 +297,108 @@ Test(apply_pepperoni, exactly_enough_succeeds)
     free_config(cfg);
 }
 
+/* ── apply_dough — stores result ─────────────────────────────────────────── */
+
+static config_t *make_dough_cfg(void)
+{
+    config_t *cfg = make_cfg();
+
+    cfg->kitchen->workers_count = 1;
+    add_ingredient(cfg, "flour", 10);
+    add_ingredient(cfg, "water", 10);
+    return cfg;
+}
+
+Test(apply_dough, success_deducts_and_stores, .init = cr_redirect_stdout)
+{
+    config_t *cfg = make_dough_cfg();
+    char *args[] = {"make", "dough", NULL};
+
+    cr_assert_eq(cmd_make(cfg, args), SUCCESS);
+    cr_assert_eq(find_ingredient(cfg, "flour")->quantity, (size_t)8);
+    cr_assert_eq(find_ingredient(cfg, "water")->quantity, (size_t)9);
+    cr_assert_not_null(find_ingredient(cfg, "dough"));
+    cr_assert_eq(find_ingredient(cfg, "dough")->quantity, (size_t)1);
+    free_config(cfg);
+}
+
+Test(apply_dough, accumulates_on_repeated_make, .init = cr_redirect_stdout)
+{
+    config_t *cfg = make_dough_cfg();
+    char *args[] = {"make", "dough", NULL};
+
+    cr_assert_eq(cmd_make(cfg, args), SUCCESS);
+    cr_assert_eq(cmd_make(cfg, args), SUCCESS);
+    cr_assert_eq(find_ingredient(cfg, "flour")->quantity, (size_t)6);
+    cr_assert_eq(find_ingredient(cfg, "water")->quantity, (size_t)8);
+    cr_assert_eq(find_ingredient(cfg, "dough")->quantity, (size_t)2);
+    free_config(cfg);
+}
+
+Test(apply_dough, no_workers)
+{
+    config_t *cfg = make_dough_cfg();
+    const recipe_t *r = find_recipe("dough");
+
+    cfg->kitchen->workers_count = 0;
+    cr_assert_eq(r->apply(cfg), FAIL);
+    free_config(cfg);
+}
+
+Test(apply_dough, not_enough_flour)
+{
+    config_t *cfg = make_dough_cfg();
+    const recipe_t *r = find_recipe("dough");
+
+    find_ingredient(cfg, "flour")->quantity = 1; /* needs 2 */
+    cr_assert_eq(r->apply(cfg), FAIL);
+    cr_assert_eq(find_ingredient(cfg, "water")->quantity, (size_t)10);
+    free_config(cfg);
+}
+
+Test(apply_dough, not_enough_water)
+{
+    config_t *cfg = make_dough_cfg();
+    const recipe_t *r = find_recipe("dough");
+
+    find_ingredient(cfg, "water")->quantity = 0; /* needs 1 */
+    cr_assert_eq(r->apply(cfg), FAIL);
+    cr_assert_eq(find_ingredient(cfg, "flour")->quantity, (size_t)10);
+    free_config(cfg);
+}
+
+Test(apply_dough, exactly_enough_succeeds, .init = cr_redirect_stdout)
+{
+    config_t *cfg = make_dough_cfg();
+    char *args[] = {"make", "dough", NULL};
+
+    find_ingredient(cfg, "flour")->quantity = 2;
+    find_ingredient(cfg, "water")->quantity = 1;
+    cr_assert_eq(cmd_make(cfg, args), SUCCESS);
+    cr_assert_eq(find_ingredient(cfg, "flour")->quantity, (size_t)0);
+    cr_assert_eq(find_ingredient(cfg, "water")->quantity, (size_t)0);
+    cr_assert_eq(find_ingredient(cfg, "dough")->quantity, (size_t)1);
+    free_config(cfg);
+}
+
+Test(apply_dough, find_recipe_returns_correct_type)
+{
+    const recipe_t *r = find_recipe("dough");
+
+    cr_assert_not_null(r);
+    cr_assert_eq(r->recipe, DOUGH);
+    cr_assert(g_recipe_ingredients[DOUGH].store_made_product);
+}
+
+Test(apply_dough, pizza_recipes_do_not_store)
+{
+    cr_assert(!g_recipe_ingredients[PEPPERONI_PIZZA].store_made_product);
+    cr_assert(!g_recipe_ingredients[CHEESE_PIZZA].store_made_product);
+    cr_assert(!g_recipe_ingredients[HAM_PIZZA].store_made_product);
+}
+
+/* ── apply_cheese ────────────────────────────────────────────────────────── */
+
 Test(apply_cheese, no_furnace)
 {
     config_t *cfg = make_full_cfg();

@@ -9,12 +9,13 @@
     #define KITCHEN_H_
 
     #include <stddef.h>
+    #include <stdbool.h>
 
     #define SUCCESS     (int)(0)
     #define FAIL        (int)(1)
     #define SHELL_EXIT  (int)(-1)
 
-    #define RECIPE_QUANTITY (int)(3)
+    #define RECIPE_QUANTITY (int)(4)
 
 typedef struct stocks {
     char *ingredient;
@@ -39,6 +40,7 @@ typedef enum {
     PEPPERONI_PIZZA,
     CHEESE_PIZZA,
     HAM_PIZZA,
+    DOUGH,
     UNDEFINED,
 } recipe_type_t;
 
@@ -52,6 +54,8 @@ typedef struct recipe_ingredients {
     const char **ingredients;
     size_t *quantity;
     size_t count;
+    bool store_made_product;
+    const char **equipment;
 } recipe_ingredients_t;
 
 typedef int (*cmd_fn_t)(config_t *, char **);
@@ -72,6 +76,7 @@ int         add_ingredient(config_t *cfg, const char *name, size_t qty);
 
 // Recipes
 extern const recipe_t g_recipes[RECIPE_QUANTITY];
+extern const recipe_ingredients_t g_recipe_ingredients[RECIPE_QUANTITY];
 const recipe_t *find_recipe(const char *name);
 
 // Commands

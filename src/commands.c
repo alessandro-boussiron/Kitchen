@@ -71,11 +71,17 @@ int cmd_make(config_t *cfg, char **args)
         printf("Error: recipe '%s' not found.\n", args[1]);
         return FAIL;
     }
-    if (recipe->apply(cfg) == SUCCESS) {
-        printf("'%s' successfully cooked!\n", recipe->name);
-        return SUCCESS;
+    if (recipe->apply(cfg) != SUCCESS)
+        return FAIL;
+    printf("'%s' successfully cooked!\n", recipe->name);
+    if (g_recipe_ingredients[recipe->recipe].store_made_product) {
+        if (add_ingredient(cfg, recipe->name, 1) != SUCCESS) {
+            printf("Error: could not store '%s' in stock.\n", recipe->name);
+            return FAIL;
+        }
+        printf("Stored 1 x '%s' in stock.\n", recipe->name);
     }
-    return FAIL;
+    return SUCCESS;
 }
 
 int cmd_add(config_t *cfg, char **args)
