@@ -8,6 +8,18 @@
 #include "kitchen.h"
 #include <stdio.h>
 
+static int store_product(config_t *cfg, const recipe_t *recipe)
+{
+    if (!g_recipe_ingredients[recipe->recipe].store_made_product)
+        return SUCCESS;
+    if (add_ingredient(cfg, recipe->name, 1) != SUCCESS) {
+        printf("Error: could not store '%s' in stock.\n", recipe->name);
+        return FAIL;
+    }
+    printf("Stored 1 x '%s' in stock.\n", recipe->name);
+    return SUCCESS;
+}
+
 int cmd_exit(config_t *cfg, char **args)
 {
     (void)cfg;
@@ -56,12 +68,5 @@ int cmd_make(config_t *cfg, char **args)
     if (recipe->apply(cfg) != SUCCESS)
         return FAIL;
     printf("'%s' successfully cooked!\n", recipe->name);
-    if (g_recipe_ingredients[recipe->recipe].store_made_product) {
-        if (add_ingredient(cfg, recipe->name, 1) != SUCCESS) {
-            printf("Error: could not store '%s' in stock.\n", recipe->name);
-            return FAIL;
-        }
-        printf("Stored 1 x '%s' in stock.\n", recipe->name);
-    }
-    return SUCCESS;
+    return store_product(cfg, recipe);
 }

@@ -32,11 +32,22 @@ static void free_tokens(char **tokens)
     free(tokens);
 }
 
+static char *alloc_tok(const char *start, size_t len)
+{
+    char *tok;
+
+    tok = malloc(len + 1);
+    if (!tok)
+        return NULL;
+    memcpy(tok, start, len);
+    tok[len] = '\0';
+    return tok;
+}
+
 static char *extract_token(char **p)
 {
     char *start;
     size_t len;
-    char *tok;
 
     if (**p == '"') {
         (*p)++;
@@ -52,12 +63,7 @@ static char *extract_token(char **p)
             (*p)++;
         len = *p - start;
     }
-    tok = malloc(len + 1);
-    if (!tok)
-        return NULL;
-    memcpy(tok, start, len);
-    tok[len] = '\0';
-    return tok;
+    return alloc_tok(start, len);
 }
 
 static char **append_token(char **tokens, size_t count, char *tok)
@@ -72,14 +78,31 @@ static char **append_token(char **tokens, size_t count, char *tok)
     return tmp;
 }
 
+static char **push_next_token(char **tokens, size_t count, char **p)
+{
+    char *tok;
+    char **tmp;
+
+    tok = extract_token(p);
+    if (!tok) {
+        free_tokens(tokens);
+        return NULL;
+    }
+    tmp = append_token(tokens, count, tok);
+    if (!tmp) {
+        free(tok);
+        free_tokens(tokens);
+        return NULL;
+    }
+    return tmp;
+}
+
 static char **tokenize(char *line)
 {
     char **tokens = NULL;
-    char **tmp;
     size_t count = 0;
     char *p = line;
     size_t len;
-    char *tok;
 
     len = strlen(line);
     if (len > 0 && line[len - 1] == '\n')
@@ -89,23 +112,12 @@ static char **tokenize(char *line)
             p++;
         if (!*p)
             break;
-        tok = extract_token(&p);
-        if (!tok) {
-            free_tokens(tokens);
+        tokens = push_next_token(tokens, count, &p);
+        if (!tokens)
             return NULL;
-        }
-        tmp = append_token(tokens, count, tok);
-        if (!tmp) {
-            free(tok);
-            free_tokens(tokens);
-            return NULL;
-        }
-        tokens = tmp;
         count++;
     }
-    if (!tokens)
-        tokens = calloc(1, sizeof(char *));
-    return tokens;
+    return tokens ? tokens : calloc(1, sizeof(char *));
 }
 
 static int dispatch(config_t *cfg, char **tokens)

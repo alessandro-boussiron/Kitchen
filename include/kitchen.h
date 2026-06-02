@@ -11,13 +11,13 @@
     #include <stddef.h>
     #include <stdbool.h>
 
-    #define SUCCESS    (int)(0)
-    #define FAIL       (int)(1)
+    #define SUCCESS (int)(0)
+    #define FAIL (int)(1)
     #define SHELL_EXIT (int)(-1)
 
     #define RECIPE_QUANTITY (int)(4)
 
-    #define CONFIG_PATH  "config.json"
+    #define CONFIG_PATH "config.json"
     #define LINE_MAX_LEN 1024
 
 typedef struct stocks {

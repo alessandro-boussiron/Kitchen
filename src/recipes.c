@@ -108,7 +108,6 @@ const recipe_t g_recipes[RECIPE_QUANTITY] = {
     {"ham_pizza", apply_ham_pizza, HAM_PIZZA},
     {"dough", apply_dough, DOUGH},
 };
-
 const recipe_t *find_recipe(const char *name)
 {
     int i;
