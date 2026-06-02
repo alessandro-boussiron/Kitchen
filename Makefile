@@ -5,7 +5,7 @@
 ## Makefile
 ##
 
-CC      	= 	epiclang
+CC      	= 	clang
 INCLUDE 	= 	-I./include/
 CFLAGS  	= 	-Wall -Wextra $(INCLUDE)
 
