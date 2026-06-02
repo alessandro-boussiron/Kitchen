@@ -1,39 +1,37 @@
 ##
 ## EPITECH PROJECT, 2026
-## Calculator
+## Kitchen
 ## File description:
 ## Makefile
 ##
 
-CC			=	clang
-INCLUDE		=	-I./include/
-CFLAGS		=	-Wall -Wextra $(INCLUDE) -lm
+CC      = clang
+INCLUDE = -I./include/
+CFLAGS  = -Wall -Wextra $(INCLUDE)
 
-SRCF		=	src/
-SRC			=	$(SRCF)checks.c		\
-				$(SRCF)ast.c		\
-				$(SRCF)ast_utils.c		\
-				$(SRCF)execute.c		\
-				$(SRCF)operation.c		\
+SRCF    = src/
+SRC     = $(SRCF)config_parser.c    \
+          $(SRCF)config.c           \
+          $(SRCF)recipes.c          \
+          $(SRCF)commands.c         \
+          $(SRCF)main.c             \
 
-OBJ			=	$(SRC:.c=.o)
+OBJ     = $(SRC:.c=.o)
 
-NAME		=	./calculator
+NAME    = ./kitchen
 
-MAIN		=	$(SRCF)main.c		\
-
-all:		$(NAME)
+all:    $(NAME)
 
 $(NAME): $(OBJ)
-	$(CC) $(SRC) $(MAIN) $(CFLAGS) -o $(NAME)
+	$(CC) $(OBJ) $(CFLAGS) -o $(NAME)
 
-%o:			%.c
-	$(CC) $(LIB) -o $< -c $@
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	$(RM) $(OBJ)
 
-fclean:		clean
+fclean: clean
 	$(RM) $(NAME)
 
-re:			fclean all
+re:     fclean all

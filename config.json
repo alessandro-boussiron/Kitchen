@@ -1,0 +1,16 @@
+{
+    "stock" : {
+        "dough": 48,
+        "tomato": 46,
+        "cheese": 35,
+        "ham": 67,
+        "pepperoni": 27
+    },
+    "kitchen" : {
+        "workers" : 4,
+        "equipement" : [
+            "furnace",
+            "knife"
+        ]
+    }
+}
